@@ -1,0 +1,180 @@
+#sc-load div{
+	height: 30px;
+	width: 150px;
+	border-radius: 10px;
+	background-color: #FF6500;
+	text-align: center;
+	line-height: 30px;
+	margin: 30px 0 20px 0;
+	cursor: pointer;
+	border: 1px solid #333;
+	transition: all .25s;
+	box-shadow:
+        0px 1px 1px rgba(255,255,255,0.8) inset,
+        1px 1px 3px rgba(0,0,0,0.2);
+}
+#sc-load div:hover{
+	background-color: #e65c01;
+	color: #fff;
+}
+.load-area{
+	height: 300px;
+	width: 600px;
+	background-color: #0f0;
+}
+#select-to-load{
+	height: 900px;
+	width: 1000px;
+	background-color: #ccc;
+	position: relative;
+	overflow: auto;
+}
+#select-to-load .sel-box{
+	height: 400px;
+	width: 98.5%;
+	border:1px solid #333;
+	/*display: inline-block;*/
+	position: relative;
+	overflow: auto;
+	padding: 0 5px;
+}
+#select-to-load .sel-box:last-of-type{
+	margin-top: 83px;
+
+}
+#select-buttons{
+	height: 55px;
+	width: 220px;
+	position: absolute;
+	top: 20px; bottom: 0;
+	right: 0; left: 0;
+	margin: auto;
+	cursor: pointer;
+	font-size: 16px;	
+}
+.sel-btn{
+	/*width: 40px;*/
+	padding: 4.5px 15px;
+	height: 20px;
+	background-color: #FF6500;
+	color: #000;
+	text-align: center;
+	border-radius: 20px;
+	margin-bottom: 5px;
+	line-height:20px;
+	display: inline-block;
+	cursor: pointer;
+	border: 1px solid #333;
+	transition: all .25s;
+	box-shadow:
+        0px 1px 1px rgba(255,255,255,0.8) inset,
+        1px 1px 3px rgba(0,0,0,0.2);
+}
+.sel-btn:hover{
+	background-color: #e65c01;
+	box-shadow: 1px 1px 1px #333 inset;
+}
+#select-to-load .sel-box ul li{
+	cursor: pointer;
+	color: #555;
+}
+#select-to-load .sel-box ul li:hover{
+	color: #000;
+}
+
+#select-to-load .sel-box ul li.act{
+	background: #0f0;
+	color: #000;
+}
+.no-go{
+	color: #f00;
+}
+#save-btn{
+	/*position: absolute;*/
+	/*bottom: 0; top: 105px;*/
+	/*height: 25px;*/
+	/*line-height: 25px;*/
+	/*width: 60px;*/
+	/*border-radius: 20px;*/
+	/*right: 0; left: 0;*/
+	/*margin: auto;*/
+	/*text-align: center;*/
+	/*background-color: #0d0;*/
+	cursor: pointer;
+	border: 1px solid #333;
+}
+#save-btn:hover{
+	/*background-color: #0b0;*/
+	box-shadow: 1px 1px 1px #333 inset
+}
+.hidden-data{
+	display: none;
+}
+.admin-tlb{
+	width: 100%;
+	/*background: #f00;*/
+	border: 1px solid #333;
+}
+.admin-tlb thead tr{
+	width: 100%;
+	background: #FF6500;
+}
+.admin-tlb thead tr th:first-of-type{
+	width: 10%;
+}
+.admin-tlb thead tr th:nth-of-type(2){
+	width: 50%;
+}
+.admin-tlb thead tr th:nth-of-type(3){
+	width: 10%;
+}
+.admin-tlb thead tr th:nth-of-type(4){
+	width: 30%;
+}
+.admin-tlb tbody tr td:first-of-type{
+	text-align: center;
+}
+.admin-tlb tbody tr td:nth-of-type(3){
+	text-align: center;
+}
+.admin-tlb tbody tr:nth-of-type(even){
+	background-color: #999;
+}
+.admin-tlb tbody tr{
+	padding: 1px;
+	cursor: pointer;
+}
+.admin-tlb tbody tr:hover{
+	background-color: #FF6500;
+}
+.admin-tlb tbody tr.act{
+	background-color: #0f0;
+}
+#select-from img{
+	bottom: 0;
+	height: 200px;
+	left: 0;
+	margin: auto;
+	position: absolute;
+	right: 0;
+	top: 75px;
+	width: 200px;	
+	display: none;
+}
+.search-title{
+	background-color: #333 !important;
+	color: #fff;
+}
+.temp-sav{
+	background-color: #0ff !important;
+}
+#status{
+	height: 25px;
+	content: "";
+}
+/*.artwork{
+	height: 100px;
+	width: 100px;
+	background-size: cover;
+	background-position: center;
+}*/
