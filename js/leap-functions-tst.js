@@ -24,12 +24,11 @@
 	loader.onComplete = setup;
 	loader.load();
 
-	var rocketship, space, lazer;
+	var rocketship, space, lazer, pixelateFilter;
 	
 	var comet_count = 0;
 	var comet_count_root = 0;
 	var alien_count = 0;
-
 	var collided = false;
 	var is_firing = false;
 	var not_hit = true;
@@ -39,20 +38,28 @@
 	var lazers = [],
 		aliens = [];
 
-	var timer = window.performance.now();
+	var id_arry = [];
 
+	var timer = window.performance.now();
+	var options = {
+		enableGestures: true,
+		frameEventName: "animationFrame"
+	};
 
 	function setup(){
 		console.log('setup');
 
 		var rocketship_texture = PIXI.TextureCache[fp.path+"/img/spaceship.png"];
 		var spacebg_texture = PIXI.TextureCache[fp.path+"/img/sapcebg.png"];
+		pixelateFilter = new PIXI.PixelateFilter();
+    	pixelateFilter.size = new PIXI.Point(5, 5);
 
 		rocketship = new PIXI.Sprite(rocketship_texture);
 		
 		space = new PIXI.TilingSprite(spacebg_texture, stageW, stageH);
 		
-		
+		// rocketship.filters = [pixelateFilter];
+
 		stage.addChild(space);
 
 		render.render(stage);
@@ -67,12 +74,12 @@
 			play_btn.hide();
 			stage.addChild(rocketship);
 
-			Leap.loop(function(frame){
+			Leap.loop(options, function(frame){
 				var now = window.performance.now();
 				var delta = Math.min(now - timer, 100);
 				timer = now;
 
-				var tile_pos = 0.2 * delta;
+				var tile_pos = 0.1 * delta;
 
 				//Animate space background
 				space.tilePosition.x -= tile_pos;
@@ -89,9 +96,10 @@
 
 				//Randomly place comets
 				var last = space.children[space.children.length - 1];
+
 				if(space.children.length == 0 || last.x < (stageW - 250)){
 					comet_count_root++;
-					alien_count++;
+
 					switch (comet_count){
 						case 1:
 							var img_src = fp.path+"/img/asteroid2.png";
@@ -121,26 +129,31 @@
 					comet.x = stageW;
 					
 					alien.y = Math.floor(Math.random() * (stageH - 105));
+
 					alien.x = stageW;
-
-
 					space.addChild(comet);
 
-					if(comet_count_root % 5 == 0){
-						aliens.push(alien);
+					if(comet_count_root % 2 === 0){
+					// 	aliens.push(alien);
+						alien.vy = 0;
 						space.addChild(alien);
-						requestAnimFrame( alien_animate );
+						var floor_val = rand_num_gen(0, 40),
+							celi_val = rand_num_gen(50, 90);
+						
+						id_arry.push({id: alien_count, sprite: alien, dir: false, fl: floor_val, ce: celi_val});
+						animate_aliens(alien, alien_count);
+						// requestAnimFrame(animate_aliens);
+
 						alien_count++;
-						adding_alien = true;
-
-
-
+					// 	adding_alien = true;
+					// alien.filters = [pixelateFilter];
+						
 					}
-
 					comet_count++;
 				}
 
 				if(frame.gestures.length > 0){
+
 					frame.gestures.forEach(function(gesture){
 						if(gesture.type == "keyTap"){
 							requestAnimFrame( lazer_animate );
@@ -171,19 +184,74 @@
 					return render.render(stage);	
 				}
 
+				//Animate aliens on screen 
+				// for (var i = 0; i < space.children.length; i++) {
+				// 	if(i % 5 === 0){
+				// 		var cur = space.children[i];
+				// 		var floor_val = rand_num_gen(0, 40),
+				// 			celi_val = rand_num_gen(50, 90);
+				// 			console.log(i);
+				// 		id_arry.push({id: i, sprite: cur, dir: false, fl: floor_val, ce: celi_val});
+				// 		animate_aliens(cur, i);
+				// 	}
+				// };
+				
 				//Display randomely generated comets 
 				space.children.forEach(function(child){
-					child.x -= 0.2 * delta;
+					child.x -= 0.3 * delta;
+
 					if(frame.pointables.length > 0){
 						if(child.getBounds().contains(rocketship.x, rocketship.y)){
 							collided = true;
 						}
 					}
-
 					if(child.x < -child.width){
 						space.removeChild(child);
+						console.log(comet_count_root);
 					}
 				});
+
+				function animate_aliens(child, index){
+					var i = index;
+
+					//TODO sinasotal wave
+					//period = 
+					//Math.sin(period/2PI)
+					// console.log(id_arry);
+
+					// var progress = Math.floor((child.y / stageH) * 100);
+					var id = rand_num_gen(0, 100);
+					// console.log(id_arry[index].id);
+					id_arry.forEach(function(sprite){
+						var progress = Math.floor((sprite.sprite.y / stageH) * 100);
+						sprite.sprite.vy = 1;
+
+						if(!sprite.dir){
+							sprite.sprite.y += sprite.sprite.vy;
+							if(progress >= sprite.ce){
+							// if(progress >= 90){
+								change_direction = true;
+								sprite.dir = true;
+							}
+						// }		
+						}else if(sprite.dir){
+							sprite.sprite.y -= sprite.sprite.vy;
+
+							if(progress <= sprite.fl){
+							// if(progress <= 0){
+								change_direction = false;
+								sprite.dir = false;
+							}
+						}				
+					})
+
+						requestAnimFrame(animate_aliens);
+
+				}
+
+				function rand_num_gen(min, max){
+					return Math.floor(Math.random() * (max - min + 1)) + min;
+				}
 
 				function lazer_animate(){
 					if(is_firing){
@@ -205,9 +273,9 @@
 							lazers.push(lazer);
 						}
 						stage.addChild(lazer);
+						console.log('shot fired');
 						is_firing = false;
 					}
-
 
 					lazers.forEach(function(LAZER){
 						if(LAZER.x < stageW){
@@ -215,7 +283,6 @@
 							space.children.forEach(function(child){
 								if(hitTestRectangle(LAZER, child)){
 									console.log('its a hit!');
-									console.log(child);
 
 									stage.removeChild(LAZER);
 									space.removeChild(child);
@@ -231,27 +298,6 @@
 
 					requestAnimFrame( lazer_animate );
 				}//end of Lazer animation
-
-				function alien_animate(){
-
-					aliens.forEach(function(al){
-						var progress = Math.floor((al.y / stageH) * 100);
-						if(progress <= 100 && !change_direction){
-							al.y += 5;
-							if(al.y >= 100){
-								change_direction = true;
-							}
-						}else if(progress <= 100 && change_direction){
-							al.y -= 5;
-							if(al.y <= 0){
-								change_direction = false;
-							}
-						}
-					})
-					requestAnimFrame(alien_animate);
-					
-				}//end of alien  animate
-
 
 				//Display the stage 
 				render.render(stage);
