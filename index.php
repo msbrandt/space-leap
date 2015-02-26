@@ -9,8 +9,8 @@
 
 <section id='main'>
 	<div id="game">
-		<h1>Space Leap</h1>
-		<span>Play</span>
+<!-- 		<h1>Space Leap</h1>
+		 <span>Play</span>  -->
 	</div>
 	
 </section>

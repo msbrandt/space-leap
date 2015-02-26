@@ -23,6 +23,7 @@
 
 	loader.onComplete = setup;
 	loader.load();
+	var m = new FPSMeter();
 
 	var rocketship, space, lazer, pixelateFilter;
 	
@@ -34,7 +35,8 @@
 	var not_hit = true;
 	var adding_alien = false;
 	var change_direction = false;
-
+	var remove_count = 0;
+	var alien_index = 0;
 	var lazers = [],
 		aliens = [];
 
@@ -45,20 +47,28 @@
 		enableGestures: true,
 		frameEventName: "animationFrame"
 	};
+	function create_sprite(img){
+		var texture = PIXI.TextureCache[fp.path+""+img+""];
+		
+		var sprite = new PIXI.Sprite(texture);
+
+		pixelateFilter = new PIXI.PixelateFilter();
+
+    	pixelateFilter.size = new PIXI.Point(5, 5);
+		sprite.filters = [pixelateFilter];
+
+		return sprite;
+
+	}
 
 	function setup(){
 		console.log('setup');
 
-		var rocketship_texture = PIXI.TextureCache[fp.path+"/img/spaceship.png"];
 		var spacebg_texture = PIXI.TextureCache[fp.path+"/img/sapcebg.png"];
-		pixelateFilter = new PIXI.PixelateFilter();
-    	pixelateFilter.size = new PIXI.Point(5, 5);
-
-		rocketship = new PIXI.Sprite(rocketship_texture);
+		rocketship = create_sprite('/img/spaceship.png');
 		
 		space = new PIXI.TilingSprite(spacebg_texture, stageW, stageH);
 		
-		// rocketship.filters = [pixelateFilter];
 
 		stage.addChild(space);
 
@@ -79,7 +89,8 @@
 				var delta = Math.min(now - timer, 100);
 				timer = now;
 
-				var tile_pos = 0.1 * delta;
+				var tile_pos = 2;
+				// var tile_pos = 0.1 * delta;
 
 				//Animate space background
 				space.tilePosition.x -= tile_pos;
@@ -102,39 +113,35 @@
 
 					switch (comet_count){
 						case 1:
-							var img_src = fp.path+"/img/asteroid2.png";
+							var img_src = "/img/asteroid2.png";
 							break;
 						
 						case 2:
-							var img_src = fp.path+"/img/asteroid3.png";
+							var img_src = "/img/asteroid3.png";
 							break;
 
 						case 3:
-							var img_src = fp.path+"/img/asteroid4.png";
+							var img_src = "/img/asteroid4.png";
 							comet_count = 0;
 							break;
 
 						default:
-							var img_src = fp.path+"/img/asteroid1.png";
+							var img_src = "/img/asteroid1.png";
 
 					}
 					
-					var comet_texture = PIXI.TextureCache[img_src];
-					var alien_texture = PIXI.TextureCache[fp.path+"/img/alien_sm.gif"];
-					
-					var comet = new PIXI.Sprite(comet_texture);
-					var alien = new PIXI.Sprite(alien_texture);
+					var comet = create_sprite(img_src);
+					var alien = create_sprite('/img/alien_sm.gif');
 
 					comet.y = Math.floor(Math.random() * (stageH - 100));
 					comet.x = stageW;
 					
 					alien.y = Math.floor(Math.random() * (stageH - 105));
 
-					alien.x = stageW;
+					alien.x = stageW + 200;
 					space.addChild(comet);
 
 					if(comet_count_root % 2 === 0){
-					// 	aliens.push(alien);
 						alien.vy = 0;
 						space.addChild(alien);
 						var floor_val = rand_num_gen(0, 40),
@@ -142,11 +149,8 @@
 						
 						id_arry.push({id: alien_count, sprite: alien, dir: false, fl: floor_val, ce: celi_val});
 						animate_aliens(alien, alien_count);
-						// requestAnimFrame(animate_aliens);
 
 						alien_count++;
-					// 	adding_alien = true;
-					// alien.filters = [pixelateFilter];
 						
 					}
 					comet_count++;
@@ -163,9 +167,14 @@
 				};
 
 				if(collided){
+					pixelateFilter = new PIXI.PixelateFilter();
+
+    				pixelateFilter.size = new PIXI.Point(5, 5);
 					var caption = new PIXI.Text("GAME OVER", {
 						font: "50px Helvetica", fill: "red"
 					});
+					caption.filters = [pixelateFilter];
+
 					caption.x = (stageW / 2) - (caption.width / 2);
 					caption.y = stageH / 2
 					stage.addChild(caption);
@@ -198,7 +207,8 @@
 				
 				//Display randomely generated comets 
 				space.children.forEach(function(child){
-					child.x -= 0.3 * delta;
+					child.x -= 4;
+					// child.x -= 0.3 * delta;
 
 					if(frame.pointables.length > 0){
 						if(child.getBounds().contains(rocketship.x, rocketship.y)){
@@ -207,7 +217,16 @@
 					}
 					if(child.x < -child.width){
 						space.removeChild(child);
-						console.log(comet_count_root);
+						remove_count++;
+
+						if(remove_count % 3 === 0){
+							console.log(parseInt(alien_index));
+							id_arry.splice(0, 1);
+							console.log(id_arry);
+							// alien_index++;
+						}
+
+						// console.log(remove_count);
 					}
 				});
 
@@ -219,7 +238,6 @@
 					//Math.sin(period/2PI)
 					// console.log(id_arry);
 
-					// var progress = Math.floor((child.y / stageH) * 100);
 					var id = rand_num_gen(0, 100);
 					// console.log(id_arry[index].id);
 					id_arry.forEach(function(sprite){
@@ -227,9 +245,11 @@
 						sprite.sprite.vy = 1;
 
 						if(!sprite.dir){
+							
 							sprite.sprite.y += sprite.sprite.vy;
 							if(progress >= sprite.ce){
 							// if(progress >= 90){
+								m.tick();
 								change_direction = true;
 								sprite.dir = true;
 							}
@@ -239,6 +259,7 @@
 
 							if(progress <= sprite.fl){
 							// if(progress <= 0){
+								m.tick();
 								change_direction = false;
 								sprite.dir = false;
 							}
@@ -254,10 +275,9 @@
 				}
 
 				function lazer_animate(){
+					
 					if(is_firing){
-						var lazer_texture = PIXI.TextureCache[fp.path+"/img/lazer.jpg"];
-
-						lazer = new PIXI.Sprite(lazer_texture);
+						lazer = create_sprite('/img/lazer.jpg');
 						lazer.vx = 5;
 
 						var pos = rocketship.position;

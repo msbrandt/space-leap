@@ -49,11 +49,14 @@ function blank_scripts() {
 	wp_enqueue_script( 'leapjs-source', get_template_directory_uri() . '/js/leap.js', array( 'jquery' ), '20131209', true );
 	wp_enqueue_script( 'leapjs-plugins', get_template_directory_uri() . '/js/leap-plugins.js', array( 'jquery' ), '20131209', true );
 	
+	wp_enqueue_script( 'fps', get_template_directory_uri() . '/js/fps.js', array( 'jquery' ), '20131209', true );
+	
 	
 	wp_enqueue_script( 'pixijs', get_template_directory_uri() . '/inc/pixijs/bin/pixi.dev.js', array( 'jquery' ), '20131209', true );
 	
 
-	wp_register_script( 'leapjs-fn', get_template_directory_uri() . '/js/leap-functions-tst.js', array( 'jquery' ), '20131209', true );
+	wp_register_script( 'leapjs-fn', get_template_directory_uri() . '/js/leap-functions-old.js', array( 'jquery' ), '20131209', true );
+	// wp_register_script( 'leapjs-fn', get_template_directory_uri() . '/js/leap-functions-tst.js', array( 'jquery' ), '20131209', true );
 	// wp_register_script( 'leapjs-fn', get_template_directory_uri() . '/js/leap-functions.js', array( 'jquery' ), '20131209', true );
 	
 	wp_localize_script( 'leapjs-fn', 'fp', array(
