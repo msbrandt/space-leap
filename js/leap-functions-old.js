@@ -3,6 +3,9 @@
 	var stageW = 1200,
 		stageH = 600;
 	
+	var half_stage_h = stageH/2,
+		foo = half_stage_h - 25;
+
 	var level1_comets = 50;
 	var	level2_comets = 100;
 
@@ -15,11 +18,14 @@
 
 
 	var m = new FPSMeter();
-
-	var rocketship, space, lazer, pixelateFilter, game_scene, game_over_scene, state;
+	var jjj = true;
+	var rocketship, space, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state;
+	var alien_h;
+	var sp_pos;
 	var fps = 20;
 	var comet_count = 0;
-	var comet_count_root = 0;
+	// var comet_count_root = 0;
+	var comet_count_root = 2;
 	var alien_count = 0;
 	var collided = false;
 	var is_firing = false;
@@ -31,6 +37,10 @@
 	var alien_index = 0;
 	var lazers = [],
 		aliens = [];
+	var a_lazers = [];
+	var ac = 0;
+	var angle = 0;
+	var alien_ar = [];
 
 
 	var id_arry = [];
@@ -77,9 +87,11 @@
 		timer = now;
 
 		game_scene = new PIXI.DisplayObjectContainer();
+		alien_scene = new PIXI.DisplayObjectContainer();
 		game_over_scene = new PIXI.DisplayObjectContainer();
 		
 		stage.addChild(game_scene);
+		
 		stage.addChild(game_over_scene);
 
 		game_over_scene.visible = false;
@@ -94,13 +106,15 @@
 
 		game_scene.addChild(space);
 		
+		game_scene.addChild(alien_scene);
+		
 		//TODO: Points system and display
 		// var point_box = new PIXI.DisplayObjectContainer();
 		play_message = new PIXI.Text("SPACE LEAP", 
-			{font: "50px Helvetica", fill: "#0f0" });
+			{font: "50px Helvetica", fill: "#3E82BE" });
 		
 		play_help = new PIXI.Text("Press enter to play", 
-			{font: "24px Helvetica", fill: "#0f0" });
+			{font: "24px Helvetica", fill: "#3E82BE" });
 		
 		game_over_message = new PIXI.Text("GAME OVER!", 
 			{font: "50px Helvetica", fill: "red" });
@@ -147,6 +161,7 @@
 		// }, 1000/fps);
 		
 		state();
+
 		render.render(stage);
 	}//end of gameLoop function
 
@@ -155,39 +170,52 @@
 		var delta = Math.min(now - timer, 100);
 		timer = now;
 
-		space.tilePosition.x -= 3;
+		// space.tilePosition.x -= 3;
 
-		space.children.forEach(function(child){
-			child.x -= 4;
+		id_arry.forEach(function(ai){
+			var pp = Math.floor((ai.sprite.y / stageH) * 100);
+			var tl = ai.max - ai.min;
 
-			collection_dection(child);
-			// if(frame.pointables.length > 0){
-				// if(child.getBounds().contains(rocketship.x, rocketship.y)){
-					// collection_dection();
-				// }
-			// }
+			ai.sprite.y = inc(tl, ai.max, ai.sy);
+
+		});
+		alien_scene.children.forEach(function(child){
+			
+			// child.x -= 5;
+			// collection_dection(child);
 
 			if(child.x < -child.width){
+				alien_scene.removeChild(child);
+				id_arry.splice(0, 1);
+			}
+
+		});
+
+		space.children.forEach(function(child){
+			// child.x -= 4;
+
+			// collection_dection(child);
+			
+			if(child.x < -child.width){
 				space.removeChild(child);
-				remove_count++;
-
-				if(remove_count % 3 === 0){
-					id_arry.splice(0, 1);
-					// console.log(id_arry);
-				}
-
 			}	
+			if(child.x > stageW){
+				console.log('remove lazer');
+			}
 
-		})
+		});
 
 		if(is_played){
 			rocketship.visible = true;
 
 			game_scene.removeChild(play_message);
 			game_scene.removeChild(play_help);
-			if( now % 1000 <= 10){
-				create_junk();
-			}
+
+			create_comet();
+
+			// if(comet_count_root % 5 === 0){
+				create_alien();
+			// }
 		}
 
 	}//end of play function
@@ -195,7 +223,15 @@
 	function end(){
 
 	}//end of end function 
-	
+	function inc(travel_length, max, start){
+
+		angle += 0.005;
+		new_pos_rad = (((Math.sin(angle * (2 * Math.PI))*travel_length)+start));
+		// new_pos_deg = new_pos_rad * (180/Math.PI);
+		// new_pos_rad = ((Math.sin(angle * (2 * Math.PI)) * half_stage_h)+foo);
+		// console.log(new_pos_rad);
+		return new_pos_rad;
+	}
 	function move_ship(frame){
 		if(frame.pointables.length > 0 && !collided){
 	        var pos = frame.pointables[0].stabilizedTipPosition;
@@ -223,10 +259,50 @@
 		}
 	}//end of keybord function
 	var qq = 0;
-	function create_junk(){
+	function create_alien(){
+
+		var last = alien_scene.children[alien_scene.children.length - 1];
+		if(jjj){
+		// if(alien_scene.children.length == 0 || last.x < (stageW - 250)){
+			var alien = create_sprite('/img/alien_sm.gif');
+
+			alien.y = Math.floor(Math.random() * (stageH - 105));
+
+			// alien.x = stageW + 200;
+
+			// alien.y = 400;
+			alien.x = stageW - 400;
+			// alien.x = Math.floor(Math.random() * (stageW - 105));
+
+
+			alien_scene.addChild(alien);
+
+			var min_val = rand_num_gen(0, half_stage_h),
+				max_val = rand_num_gen(half_stage_h, (stageH - 50));
+			// var min_val = 335,
+				// max_val = 463;
+
+			console.log('Max:'+ max_val+ ' min:'+ min_val+ ' start y:'+ alien.y);
+
+			
+			id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
+			// console.log(alien_count);
+			// if(timer % 10 === 0){
+				alien_lazer();
+
+			// }
+			alien_count++;
+			// if(alien_count === 3){
+				jjj = false;
+
+			// }
+
+		}
+	}
+	function create_comet(){
 		// console.log('go ' + qq);
 		qq++;
-		var last = game_scene.children[game_scene.children.length - 1];
+		var last = space.children[space.children.length - 1];
 		
 		if(space.children.length == 0 || last.x < (stageW - 250)){
 			comet_count_root++;
@@ -251,35 +327,58 @@
 				}
 
 			var comet = create_sprite(img_src);
-			var alien = create_sprite('/img/alien_sm.gif');
 
 			comet.y = Math.floor(Math.random() * (stageH - 100));
 			comet.x = stageW;
 
 			space.addChild(comet);
 
-			alien.y = Math.floor(Math.random() * (stageH - 105));
-			alien.x = stageW + 200;
 
 			var theta = 0.2 * delta;
-			if(comet_count_root % 2 === 0){
-				alien.vy = 0;
-				space.addChild(alien);
-				var floor_val = rand_num_gen(0, 40),
-					celi_val = rand_num_gen(50, 90);
+			// if(comet_count_root % 2 === 0){
+			// 	alien.vy = 0;
+			// 	alien_scene.addChild(alien);
+			// 	var floor_val = rand_num_gen(0, 40),
+			// 		celi_val = rand_num_gen(50, 90);
 				
-				id_arry.push({id: alien_count, sprite: alien, dir: false, fl: floor_val, ce: celi_val, vols: theta});
-				animate_aliens(alien, alien_count);
-				console.log(alien_count);
-				alien_count++;
+			// 	id_arry.push({id: alien_count, sprite: alien, dir: false, fl: floor_val, ce: celi_val, vols: theta});
+			// 	// animate_aliens(alien, alien_count);
+			// 	// console.log(alien_count);
+			// 	alien_count++;
 				
-			}
+			// }
 			comet_count++;
 
 		}
 
-	}//end of create junk function
+	}//end of create comet function
 
+	function alien_lazer(){
+		a_lazer = create_sprite('/img/lazer-r.jpg');
+
+		console.log(Math.floor(timer));
+		a_lazer.anchor.x = 0.5;
+		a_lazer.anchor.y = 0.5;
+		// a_lazer.position.x = pos.x;
+		// a_lazer.position.y = pos.y;
+
+		if(a_lazers.length <= 20){
+			a_lazers.push(a_lazer); 
+		}
+		if(Math.floor(timer) % 30 == 0){
+			console.log('lazer shot');
+			stage.addChild(a_lazer);
+
+		}
+		
+
+
+		a_lazers.forEach(function(l){
+			l.x -= 5;
+		});
+
+		requestAnimFrame(alien_lazer);
+	}
 	function lazer_animate(){
 		
 		if(is_firing && is_played){
@@ -292,13 +391,13 @@
 			lazer.position.x = pos.x + 80;
 			lazer.position.y = pos.y + 40;
 			
-			if(lazers.length <= 30){
+			if(lazers.length <= 20){
 				lazers.push(lazer);
 			}else{
 				lazers = [];
 				lazers.push(lazer);
 			}
-
+			console.log(lazers.length);
 			stage.addChild(lazer);
 			console.log('shot fired');
 			is_firing = false;
@@ -307,15 +406,16 @@
 		lazers.forEach(function(LAZER){
 			if(LAZER.x < stageW){
 				LAZER.x += 5;
-				space.children.forEach(function(child){
+				alien_scene.children.forEach(function(child){
 					if(hitTestRectangle(LAZER, child)){
 						console.log('its a hit!');
-
 						stage.removeChild(LAZER);
-						space.removeChild(child);
+						alien_scene.removeChild(child);
+						
 						return;
 					}	
-				})
+				});
+
 			}else{
 				stage.removeChild(LAZER);
 			}
@@ -323,45 +423,7 @@
 
 		requestAnimFrame( lazer_animate );
 	}//end of Lazer animation
-
-	function animate_aliens(child, index){
-		// console.log(index);
-		//TODO sinasotal wave
-		//period = 
-		//Math.sin(period/2PI)
-		// console.log(id_arry);
-		var id = rand_num_gen(0, 100);
-		// console.log(id_arry);
-		id_arry.forEach(function(sprite){
-			var progress = Math.floor((sprite.sprite.y / stageH) * 100);
-			sprite.sprite.vy = 2;
-
-			if(!sprite.dir){
-				sprite.sprite.y = sprite.sprite.y + sprite.sprite.vy;
-				if(progress >= sprite.ce){
-				// if(progress >= 90){
-					// m.tick();
-					change_direction = true;
-					sprite.dir = true;
-				}
-			// }		
-			}else if(sprite.dir){
-				sprite.sprite.y = sprite.sprite.y - sprite.sprite.vy;
-
-				if(progress <= sprite.fl){
-				// if(progress <= 0){
-					// m.tick();
-					change_direction = false;
-					sprite.dir = false;
-				}
-			}				
-		})
-			setTimeout(function(){
-				requestAnimationFrame(animate_aliens);
-			}, 1000/fps);
-			// requestAnimFrame(animate_aliens);
-
-	}	
+	
 	function rand_num_gen(min, max){
 		return Math.floor(Math.random() * (max - min + 1)) + min;
 	}
