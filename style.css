@@ -10,6 +10,14 @@ Version: v1.0
 */
 
 /*  0.0 - General */
+@font-face{
+	font-family: 'Press Start 2P';
+	src: url('http://fonts.googleapis.com/css?family=Press+Start+2P');
+}
+body div:nth-of-type(2){
+	top: 40px !important;
+	background: #0f0;
+}
 #game{
 	height: 600px;
 	width: 1200px;

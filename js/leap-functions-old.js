@@ -1,4 +1,16 @@
 (function($){
+	
+	// window.requestAnimFrame = (function(){
+	//   return  window.requestAnimationFrame       ||
+	//           window.webkitRequestAnimationFrame ||
+	//           window.mozRequestAnimationFrame    ||
+	//           function( callback ){
+	//             window.setTimeout(callback, 1000 / 60);
+	//           };
+	// })();
+
+	var tst_mode = false,
+		moveable_ship = true;
 
 	var stageW = 1200,
 		stageH = 600;
@@ -19,16 +31,17 @@
 
 	var m = new FPSMeter();
 	var jjj = true;
-	var rocketship, space, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state;
+	var rocketship, space, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state, rocket_lazer_scene;
 	var alien_h;
 	var sp_pos;
-	var fps = 20;
+	var fps = 60;
 	var comet_count = 0;
 	// var comet_count_root = 0;
 	var comet_count_root = 2;
 	var alien_count = 0;
 	var collided = false;
 	var is_firing = false;
+	var alien_firing = false;
 	var not_hit = true;
 	var adding_alien = false;
 	var change_direction = false;
@@ -41,6 +54,7 @@
 	var ac = 0;
 	var angle = 0;
 	var alien_ar = [];
+	var pig;
 
 
 	var id_arry = [];
@@ -52,9 +66,14 @@
 	};
 	var loader =  new PIXI.AssetLoader([
 		fp.path+"/img/sapcebg.png",
+		fp.path+"/img/test_bg_3.png",
+		fp.path+"/img/cloud_overlay.png",
+		fp.path+"/img/stars.png",
+		fp.path+"/img/semless.png",
 		fp.path+"/img/spaceship.png",
 		fp.path+"/img/alien_sm.gif",
 		fp.path+"/img/lazer.jpg",
+		fp.path+"/img/lazer-r.jpg",
 		fp.path+"/img/asteroid1.png",
 		fp.path+"/img/asteroid2.png",
 		fp.path+"/img/asteroid3.png",
@@ -63,7 +82,13 @@
 
 	loader.onComplete = setup;
 	loader.load();
+	function create_txt(str, font_size, font_style, color){
 
+		var new_txt = new PIXI.Text(String(str), 
+			{font: ""+font_size+"px " +font_style+"", fill: color }); 
+
+		return new_txt;
+	}
 	function create_sprite(img){
 		var texture = PIXI.TextureCache[fp.path+""+img+""];
 		
@@ -85,7 +110,6 @@
 		now = window.performance.now();
 		delta = Math.min(now - timer, 100);
 		timer = now;
-
 		game_scene = new PIXI.DisplayObjectContainer();
 		alien_scene = new PIXI.DisplayObjectContainer();
 		game_over_scene = new PIXI.DisplayObjectContainer();
@@ -99,25 +123,43 @@
 
     	pixelateFilter.size = new PIXI.Point(5, 5);
 		
-		var spacebg_texture = PIXI.TextureCache[fp.path+"/img/sapcebg.png"];
+		// var spacebg_texture = PIXI.TextureCache[fp.path+"/img/sapcebg.png"];
+		// var spacebg_texture = PIXI.TextureCache[fp.path+"/img/semless.png"];
+		var spacebg_texture = PIXI.TextureCache[fp.path+"/img/test_bg_3.png"];
 		rocketship = create_sprite('/img/spaceship.png');
 		
 		space = new PIXI.TilingSprite(spacebg_texture, stageW, stageH);
 
 		game_scene.addChild(space);
-		
 		game_scene.addChild(alien_scene);
 		
 		//TODO: Points system and display
-		// var point_box = new PIXI.DisplayObjectContainer();
-		play_message = new PIXI.Text("SPACE LEAP", 
-			{font: "50px Helvetica", fill: "#3E82BE" });
+		var point_box = new PIXI.DisplayObjectContainer();
+
+		game_scene.addChild(point_box);
+
+		var rect = new PIXI.Graphics();
+		rect.lineStyle(3, 0x3E82BE, 1);
+		rect.drawRect(0,0,250,75);
+		rect.y = 5;
+		rect.x = 945;
+
+		// point_box.addChild(rect);
+		var point_txt = create_txt('Pts', 30, 'Helvetica', '#3E82BE');
+		point_txt.y = 10;
+		point_txt.x = 1150;
+		// point_box.addChild(point_txt);
 		
-		play_help = new PIXI.Text("Press enter to play", 
-			{font: "24px Helvetica", fill: "#3E82BE" });
+		play_message = create_txt('SPACE LEAP', 50, 'Helvetica', '#3E82BE');
+		// play_message = new PIXI.Text("SPACE LEAP", 
+			// {font: "50px Helvetica", fill: "#3E82BE" });
+		play_help = create_txt('Press enter to play', 24, 'Helvetica', '#3E82BE');
 		
-		game_over_message = new PIXI.Text("GAME OVER!", 
-			{font: "50px Helvetica", fill: "red" });
+		// play_help = new PIXI.Text("Press enter to play", 
+		// 	{font: "24px Helvetica", fill: "#3E82BE" });
+		game_over_message = create_txt('GAME OVER!', 50, 'Helvetica', '#FF0000');
+		// game_over_message = new PIXI.Text("GAME OVER!", 
+		// 	{font: "50px Helvetica", fill: "red" });
 
 		play_message.x = (stageW / 2) - (play_message.width / 2);
 		play_message.y = stageH / 2;
@@ -143,15 +185,20 @@
 		state = play;
 
 		var controler = Leap.loop(options, function(frame){
+			page_state(frame);
+
 			if(rocketship.visible){
-				move_ship(frame);
+				if(moveable_ship){
+					move_ship(frame);
+				}
 				shoot_lazer(frame);
 				restart_game_lisnter(frame);
 
 			}
 		})//end of leap loop
-
 		gameLoop();
+		requestAnimFrame(animate);
+
 
 	}
 
@@ -169,19 +216,29 @@
 		var now = window.performance.now();
 		var delta = Math.min(now - timer, 100);
 		timer = now;
-
-		// space.tilePosition.x -= 3;
+		if(!tst_mode){
+			space.tilePosition.x -= 3;
+		}
 
 		id_arry.forEach(function(ai){
 			var pp = Math.floor((ai.sprite.y / stageH) * 100);
 			var tl = ai.max - ai.min;
 
-			ai.sprite.y = inc(tl, ai.max, ai.sy);
+			ai.sprite.y = inc_alian(tl, ai.max, ai.sy);
 
 		});
 		alien_scene.children.forEach(function(child){
-			
-			// child.x -= 5;
+			if(Math.floor(timer) % 62 == 0){
+				// console.log('lazer shot');
+				alien_firing = true;
+				alien_lazer(child);
+				requestAnimFrame( alien_lazer );
+
+			}
+			if(!tst_mode){
+				child.x -= 5;
+
+			}
 			// collection_dection(child);
 
 			if(child.x < -child.width){
@@ -192,8 +249,9 @@
 		});
 
 		space.children.forEach(function(child){
-			// child.x -= 4;
-
+			if(!tst_mode){
+				child.x -= 4;
+			}
 			// collection_dection(child);
 			
 			if(child.x < -child.width){
@@ -212,10 +270,14 @@
 			game_scene.removeChild(play_help);
 
 			create_comet();
-
-			// if(comet_count_root % 5 === 0){
+			
+			if(!tst_mode){
+				if(comet_count_root % 5 === 0){
+					create_alien();
+				}
+			}else{
 				create_alien();
-			// }
+			}
 		}
 
 	}//end of play function
@@ -223,7 +285,7 @@
 	function end(){
 
 	}//end of end function 
-	function inc(travel_length, max, start){
+	function inc_alian(travel_length, max, start){
 
 		angle += 0.005;
 		new_pos_rad = (((Math.sin(angle * (2 * Math.PI))*travel_length)+start));
@@ -231,7 +293,7 @@
 		// new_pos_rad = ((Math.sin(angle * (2 * Math.PI)) * half_stage_h)+foo);
 		// console.log(new_pos_rad);
 		return new_pos_rad;
-	}
+	}//end inc_alian function
 	function move_ship(frame){
 		if(frame.pointables.length > 0 && !collided){
 	        var pos = frame.pointables[0].stabilizedTipPosition;
@@ -241,64 +303,82 @@
 	        rocketship.x = stageW * normPos[0];
 	        rocketship.y = stageH * (1 - normPos[1]); 
 		}
-	}
+	}//end move_ship function
 	function shoot_lazer(frame){
 		if(frame.gestures.length > 0){
 
 			frame.gestures.forEach(function(gesture){
 				if(gesture.type == "keyTap"){
-					requestAnimFrame( lazer_animate );
 					is_firing = true;
+					// lazer_animate();
 				}
 			})
 		};
-	}
+	}//end shoot_lazer function
 	function keyboard(kc){
 		if(kc.keyCode === 13){
 			is_played = true; 
 		}
-	}//end of keybord function
+	}//end keybord function
 	var qq = 0;
 	function create_alien(){
-
-		var last = alien_scene.children[alien_scene.children.length - 1];
-		if(jjj){
-		// if(alien_scene.children.length == 0 || last.x < (stageW - 250)){
-			var alien = create_sprite('/img/alien_sm.gif');
-
-			alien.y = Math.floor(Math.random() * (stageH - 105));
-
-			// alien.x = stageW + 200;
-
-			// alien.y = 400;
-			alien.x = stageW - 400;
-			// alien.x = Math.floor(Math.random() * (stageW - 105));
-
-
-			alien_scene.addChild(alien);
-
-			var min_val = rand_num_gen(0, half_stage_h),
-				max_val = rand_num_gen(half_stage_h, (stageH - 50));
-			// var min_val = 335,
-				// max_val = 463;
-
-			console.log('Max:'+ max_val+ ' min:'+ min_val+ ' start y:'+ alien.y);
-
+		if(!tst_mode){
+			var last = alien_scene.children[alien_scene.children.length - 1];
 			
-			id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
-			// console.log(alien_count);
-			// if(timer % 10 === 0){
-				alien_lazer();
+			if(alien_scene.children.length == 0 || last.x < (stageW - 250)){
+				var alien = create_sprite('/img/alien_sm.gif');
 
-			// }
-			alien_count++;
-			// if(alien_count === 3){
-				jjj = false;
+				alien.y = Math.floor(Math.random() * (stageH - 105));
 
-			// }
+				alien.x = stageW + 200;
 
+				alien_scene.addChild(alien);
+
+				var min_val = rand_num_gen(0, half_stage_h),
+					max_val = rand_num_gen(half_stage_h, (stageH - 50));
+
+				// console.log('Max:'+ max_val+ ' min:'+ min_val+ ' start y:'+ alien.y);
+
+				
+				id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
+
+				alien_count++;
+			}
+
+		}else{
+			if(jjj){
+				var alien = create_sprite('/img/alien_sm.gif');
+
+				alien.y = Math.floor(Math.random() * (stageH - 105));
+
+				alien.x = stageW - 400;
+
+				alien_scene.addChild(alien);
+
+				var min_val = rand_num_gen(0, half_stage_h),
+					max_val = rand_num_gen(half_stage_h, (stageH - 50));
+				// var min_val = 335,
+					// max_val = 463;
+
+				// console.log('Max:'+ max_val+ ' min:'+ min_val+ ' start y:'+ alien.y);
+
+				
+				id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
+				// console.log(alien_count);
+
+
+				// }
+				alien_count++;
+				// if(alien_count === 2){
+					jjj = false;
+
+				// }
+
+			}
 		}
-	}
+
+		
+	}//end create alien function
 	function create_comet(){
 		// console.log('go ' + qq);
 		qq++;
@@ -350,80 +430,165 @@
 			comet_count++;
 
 		}
+	}//end create comet function
+	
 
-	}//end of create comet function
 
-	function alien_lazer(){
-		a_lazer = create_sprite('/img/lazer-r.jpg');
+	function alien_lazer(alien_ship){
 
-		console.log(Math.floor(timer));
-		a_lazer.anchor.x = 0.5;
-		a_lazer.anchor.y = 0.5;
-		// a_lazer.position.x = pos.x;
-		// a_lazer.position.y = pos.y;
-
-		if(a_lazers.length <= 20){
-			a_lazers.push(a_lazer); 
-		}
-		if(Math.floor(timer) % 30 == 0){
-			console.log('lazer shot');
-			stage.addChild(a_lazer);
-
-		}
+		if(alien_firing && is_played){
+			a_lazer = create_sprite('/img/lazer-r.jpg');
 		
+			var pos = alien_ship.position;
+			// console.log(pos);
+			a_lazer.anchor.x = 0.5;
+			a_lazer.anchor.y = 0.5;
 
-
-		a_lazers.forEach(function(l){
-			l.x -= 5;
-		});
-
-		requestAnimFrame(alien_lazer);
-	}
-	function lazer_animate(){
-		
-		if(is_firing && is_played){
-			lazer = create_sprite('/img/lazer.jpg');
-			lazer.vx = 5;
-
-			var pos = rocketship.position;
-			lazer.anchor.x = 0.5;
-			lazer.anchor.y = 0.5;
-			lazer.position.x = pos.x + 80;
-			lazer.position.y = pos.y + 40;
+			a_lazer.position.x = pos.x - 20;
+			a_lazer.position.y = pos.y + 30;
 			
-			if(lazers.length <= 20){
-				lazers.push(lazer);
+			if(a_lazers.length <= 20){
+				a_lazers.push(a_lazer);
 			}else{
-				lazers = [];
-				lazers.push(lazer);
+				a_lazers = [];
+				a_lazers.push(a_lazer);
 			}
-			console.log(lazers.length);
-			stage.addChild(lazer);
-			console.log('shot fired');
-			is_firing = false;
+			// console.log(a_lazers);
+			stage.addChild(a_lazer);
+			// console.log('alien shot fired');
+			alien_firing = false;
+
 		}
 
-		lazers.forEach(function(LAZER){
-			if(LAZER.x < stageW){
-				LAZER.x += 5;
-				alien_scene.children.forEach(function(child){
-					if(hitTestRectangle(LAZER, child)){
-						console.log('its a hit!');
-						stage.removeChild(LAZER);
-						alien_scene.removeChild(child);
+		a_lazers.forEach(function(A_LAZER){
+			// if(A_LAZER.x < stageW){
+				A_LAZER.x -= 0.2 * delta;
+				if(A_LAZER.x < -100){
+					a_lazers.splice(0,1);
+				}
+				if(hitTestRectangle(A_LAZER, rocketship)){
+				// alien_scene.children.forEach(function(child){
+					// if(hitTestRectangle(A_LAZER, child)){
+						console.log('alien lazer hit!');
+						stage.removeChild(A_LAZER);
+				// 		alien_scene.removeChild(child);
 						
-						return;
-					}	
-				});
+				// 		return;
+				// 	}	
+				// });
 
-			}else{
-				stage.removeChild(LAZER);
 			}
+			// 	stage.removeChild(A_LAZER);
+			// }
 		})
 
-		requestAnimFrame( lazer_animate );
+		// console.log(Math.floor(timer));
+
+		requestAnimFrame(alien_lazer);
+	}//end alien_lazer function
+
+	function inc_lazer(the_lazer){
+		// console.log(the_lazer);
+		beta = 0.5 * delta;
+		// the_lazer.x = rocketship.position.x + 80;
+		var ang = the_lazer.x += beta;
+		// console.log(ang);
+		return ang;
+	}//end inc_alien_lazer
+	var limit = 3;
+	function create_lazer(type){
+
+	}
+	function lazer_animate(){
+
+		if(is_firing && is_played){
+			// lazer.vx = 5;
+			// for(var i = 0; i<limit; i++){
+
+				lazer = create_sprite('/img/lazer.jpg');
+
+				var pos = rocketship.position;
+				lazer.anchor.x = 0.5;
+				lazer.anchor.y = 0.5;
+				lazer.position.x = pos.x + 80;
+				lazer.position.y = pos.y + 40;
+				
+				lazers.push(lazer);
+
+				// setTimeout(function(){
+					stage.addChild(lazer);
+				// }, 200);
+
+				// stage.addChild(lazer);
+				console.log('shot fired');
+
+			// }
+				console.log(lazers);
+
+
+			is_firing = false;
+		}
+		// lazer.x += 5;
+		for(var i = 0; i < lazers.length; i++){
+			// console.log(lazers[i].x);
+			if(lazers[i].x < stageW+100){
+				lazers[i].x = inc_lazer(lazers[i]);
+			}else if(lazers[i].x > stageW + 100){
+				// lazers.splice(i, 1);
+			}
+		}
+		// for(var x = 0; x<limit; x++){
+			// var g = x - 1;
+			
+			// setTimeout(function(){
+				// console.log(lazers[x]);
+				// lazers[x].x = inc_lazer(lazers[x]);
+				// if(lazers[x].x > stageW + 100){
+				// 	lazers.splice(x, 1);
+				// }
+			// }, 10);
+
+
+		// }
+		// lazers.forEach(function(LAZER){
+			// console.log(LAZER.x);
+			// m.tickStart();
+			// if(LAZER.x < stageW+100){
+					// LAZER.x = inc_lazer(LAZER);
+
+
+				// console.log(LAZER.x);
+				// alien_scene.children.forEach(function(child){
+				// 	if(hitTestRectangle(LAZER, child)){
+				// 		console.log('its a hit!');
+				// 		stage.removeChild(LAZER);
+				// 		alien_scene.removeChild(child);
+						
+				// 		return;
+				// 	}	
+				// });
+
+			// }else if(LAZER.x > stageW+100){
+				// lazers.splice(0,1);
+
+				// stage.removeChild(LAZER);
+			// }
+		// });
+
+		// setTimeout(function(){
+		// 	requestAnimationFrame(lazer_animate);
+		// }, 1000/80);
+
+
 	}//end of Lazer animation
-	
+	function animate(){
+		// if(is_firing){
+		lazer_animate();
+
+		// }
+		// console.log('go');
+		requestAnimFrame(animate);
+	}
 	function rand_num_gen(min, max){
 		return Math.floor(Math.random() * (max - min + 1)) + min;
 	}
@@ -459,7 +624,21 @@
 		}
 
 	}//end of restart_game_lisnter function
-	
+	function page_state(frame){
+		if(frame.hands.length === 2){
+
+			if(frame.gestures.length > 0){
+				frame.gestures.forEach(function(g){
+					if(g.type == "circle"){
+						window.location.reload();
+					}
+					if(g.type == "keyTap"){
+						is_played = true;
+					}
+				})
+			}
+		}
+	}
 	function hitTestRectangle(r1, r2) {
 
 	  //Define the variables we'll need to calculate
