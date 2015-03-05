@@ -17,7 +17,7 @@
 	document.getElementById('game').appendChild(render.view);
 
 	var current_level, the_level;
-	var use_lvl = 'l1';
+	var use_lvl = 'l0';
 	var jjj = true;
 	var rocketship, space_tile, space_container, bg_stars, fg_stars, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state, rocket_lazer_scene, comet_scene;
 	var comet_count = 0;
@@ -41,6 +41,17 @@
 	};
 
 	var levels = {
+		l0: {
+			space_bg: 'space-lvlb_1',
+			space_speed: 0.1,
+			back_star_speed: 0.15,
+			for_star_speed: 0.2,
+			comet_speed: 4,
+			alien_speed: 5,
+			comet_rate: 600,
+			alien_rate: 5,
+			// a_lazer_timer: 
+		},		
 		l1: {
 			space_bg: 'space-lvl1',
 			space_speed: 0.1,
@@ -280,7 +291,6 @@
 			var lego = window.performance.now();
 			the_level = level_check(lego);
 		}
-
 		switch(the_level){
 			case 1:
 				use_lvl = 'l1';
@@ -298,9 +308,10 @@
 				use_lvl = 'l5';
 				break;
 			default:
-				use_lvl = 'l1';
+				use_lvl = 'l0';
 
 		}
+		console.log(use_lvl);
 		// console.log(levels[use_lvl].space_bg);
 
 		if(!tst_mode){
@@ -359,7 +370,7 @@
 			create_comet();
 			
 			if(!tst_mode){
-				console.log(levels[use_lvl].alien_rate);
+				// console.log(levels[use_lvl].alien_rate);
 				if(comet_count_root % levels[use_lvl].alien_rate === 0){
 					create_alien();
 				}
@@ -376,7 +387,7 @@
 
 	function level_check(ms, points){
 		var time = Math.floor((ms/1000));
-
+		if(is_played){
 			if(time > 30 && time < 60){
 				current_level = 2;
 				update_bg();
@@ -398,8 +409,10 @@
 				win_message.visible = true;
 			}else{
 				current_level = 1;
-
+				update_bg();
+				
 			}
+		}
 		
 
 		return current_level;
