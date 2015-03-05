@@ -1,16 +1,8 @@
 (function($){
 	
-	// window.requestAnimFrame = (function(){
-	//   return  window.requestAnimationFrame       ||
-	//           window.webkitRequestAnimationFrame ||
-	//           window.mozRequestAnimationFrame    ||
-	//           function( callback ){
-	//             window.setTimeout(callback, 1000 / 60);
-	//           };
-	// })();
-
 	var tst_mode = false,
-		moveable_ship = true;
+		moveable_ship = true,
+		coli = false;
 
 	var stageW = 1200,
 		stageH = 600;
@@ -18,58 +10,106 @@
 	var half_stage_h = stageH/2,
 		foo = half_stage_h - 25;
 
-	var level1_comets = 50;
-	var	level2_comets = 100;
-
 	var stage = new PIXI.Stage(0xFFFFFF);
 	var render = new PIXI.autoDetectRenderer(stageW, stageH,
 		{antialiasing: false, transparent: true, resolution: 1} );
 	
-	var play_btn = $('#game > span, #game > h1');
 	document.getElementById('game').appendChild(render.view);
 
-
-	var m = new FPSMeter();
+	var current_level, the_level;
+	var use_lvl = 'l1';
 	var jjj = true;
-	var rocketship, space, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state, rocket_lazer_scene;
-	var alien_h;
-	var sp_pos;
-	var fps = 60;
+	var rocketship, space_tile, space_container, bg_stars, fg_stars, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state, rocket_lazer_scene, comet_scene;
 	var comet_count = 0;
-	// var comet_count_root = 0;
-	var comet_count_root = 2;
+	var comet_count_root = 0;
 	var alien_count = 0;
 	var collided = false;
 	var is_firing = false;
 	var alien_firing = false;
-	var not_hit = true;
-	var adding_alien = false;
-	var change_direction = false;
 	var is_played = false;
-	var remove_count = 0;
-	var alien_index = 0;
-	var lazers = [],
-		aliens = [];
+	var lazers = [];
 	var a_lazers = [];
-	var ac = 0;
 	var angle = 0;
-	var alien_ar = [];
-	var pig;
-
 
 	var id_arry = [];
 
 	var timer = window.performance.now();
+
 	var options = {
 		enableGestures: true,
 		frameEventName: "animationFrame"
 	};
+
+	var levels = {
+		l1: {
+			space_bg: 'space-lvl1',
+			space_speed: 0.1,
+			back_star_speed: 0.15,
+			for_star_speed: 0.2,
+			comet_speed: 4,
+			alien_speed: 5,
+			comet_rate: 600,
+			alien_rate: 5,
+			// a_lazer_timer: 
+		},
+		l2: {
+			space_bg: 'space-lvl2',
+			space_speed: 0.15,
+			back_star_speed: 0.2,
+			for_star_speed: .25,
+			comet_speed: 5,
+			alien_speed: 6,
+			comet_rate: 400,
+			alien_rate: 5,
+			// a_lazer_timer: 
+		},
+		l3: {
+			space_bg: 'space-lvl3',
+			space_speed: 0.2,
+			back_star_speed: 0.25 ,
+			for_star_speed: 0.3,
+			comet_speed: 6,
+			alien_speed: 7,
+			comet_rate: 300,
+			alien_rate: 6,
+			// a_lazer_timer: 
+		},
+		l4: {
+			space_bg: 'space-lvl4',
+			space_speed: 0.3,
+			back_star_speed: 0.35,
+			for_star_speed: 0.4,
+			comet_speed: 7,
+			alien_speed: 8,
+			comet_rate: 200,
+			alien_rate: 7,
+			// a_lazer_timer: 
+		},
+		l5: {
+			space_bg: 'space-lvl5',
+			space_speed: 0.7,
+			back_star_speed: 0.8,
+			for_star_speed: 0.9,
+			comet_speed: 10,
+			alien_speed: 11,
+			comet_rate: 100,
+			alien_rate: 5,
+			// a_lazer_timer: 
+		},
+
+	};
+
+
 	var loader =  new PIXI.AssetLoader([
-		fp.path+"/img/sapcebg.png",
-		fp.path+"/img/test_bg_3.png",
-		fp.path+"/img/cloud_overlay.png",
-		fp.path+"/img/stars.png",
-		fp.path+"/img/semless.png",
+		fp.path+"/img/space/space-lvl1.png",
+		fp.path+"/img/space/space-lvl2.png",
+		fp.path+"/img/space/space-lvl3.png",
+		fp.path+"/img/space/space-lvl4.png",
+		fp.path+"/img/space/space-lvl5.png",
+		fp.path+"/img/space/space-lvlb_1.png",
+		fp.path+"/img/comet-canvas.png",
+		fp.path+"/img/stars-sm.png",
+		fp.path+"/img/stars-lg.png",
 		fp.path+"/img/spaceship.png",
 		fp.path+"/img/alien_sm.gif",
 		fp.path+"/img/lazer.jpg",
@@ -82,6 +122,7 @@
 
 	loader.onComplete = setup;
 	loader.load();
+
 	function create_txt(str, font_size, font_style, color){
 
 		var new_txt = new PIXI.Text(String(str), 
@@ -94,24 +135,37 @@
 		
 		var sprite = new PIXI.Sprite(texture);
 
-		pixelateFilter = new PIXI.PixelateFilter();
-
-    	pixelateFilter.size = new PIXI.Point(5, 5);
-		sprite.filters = [pixelateFilter];
+		pixelate(sprite);
 
 		sprite.vy = 0;
 
 		return sprite;
 
 	}
+	function pixelate(obj){
+		var filter = new PIXI.PixelateFilter();
+		filter.size = new PIXI.Point(6,6);
+		obj.filters = [filter];
+
+	}
+
+	function parallax_bg(d){
+		space_tile.tilePosition.x -= levels[use_lvl].space_speed * d;
+		bg_stars.tilePosition.x -= levels[use_lvl].back_star_speed * d;
+		fg_stars.tilePosition.x -= levels[use_lvl].for_star_speed * d;		
+	}
 
 	var now, delta;
+	
 	function setup(){
+
 		now = window.performance.now();
 		delta = Math.min(now - timer, 100);
 		timer = now;
+
 		game_scene = new PIXI.DisplayObjectContainer();
 		alien_scene = new PIXI.DisplayObjectContainer();
+		
 		game_over_scene = new PIXI.DisplayObjectContainer();
 		
 		stage.addChild(game_scene);
@@ -119,19 +173,29 @@
 		stage.addChild(game_over_scene);
 
 		game_over_scene.visible = false;
-		pixelateFilter = new PIXI.PixelateFilter();
 
-    	pixelateFilter.size = new PIXI.Point(5, 5);
 		
-		// var spacebg_texture = PIXI.TextureCache[fp.path+"/img/sapcebg.png"];
-		// var spacebg_texture = PIXI.TextureCache[fp.path+"/img/semless.png"];
-		var spacebg_texture = PIXI.TextureCache[fp.path+"/img/test_bg_3.png"];
+		var spacebg_texture = PIXI.TextureCache[fp.path+"/img/space/"+levels[use_lvl].space_bg+".png"];
+		var trans_texture = PIXI.TextureCache[fp.path+"/img/comet-canvas.png"];
+		var stars_sm_texture = PIXI.TextureCache[fp.path+"/img/stars-sm.png"];
+		var stars_lg_texture = PIXI.TextureCache[fp.path+"/img/stars-lg.png"];
+		
 		rocketship = create_sprite('/img/spaceship.png');
 		
-		space = new PIXI.TilingSprite(spacebg_texture, stageW, stageH);
+		space_tile = new PIXI.TilingSprite(spacebg_texture, stageW, stageH);
+		space_container = new PIXI.TilingSprite(trans_texture, stageW, stageH);
 
-		game_scene.addChild(space);
+		bg_stars = new PIXI.TilingSprite(stars_sm_texture, stageW, stageH);
+		fg_stars = new PIXI.TilingSprite(stars_lg_texture, stageW, stageH);
+		
+		game_scene.addChild(space_tile);
+		game_scene.addChild(space_container);
+		game_scene.addChild(bg_stars);
+		
+		game_scene.addChild(rocketship);
 		game_scene.addChild(alien_scene);
+
+		game_scene.addChild(fg_stars);
 		
 		//TODO: Points system and display
 		var point_box = new PIXI.DisplayObjectContainer();
@@ -151,15 +215,9 @@
 		// point_box.addChild(point_txt);
 		
 		play_message = create_txt('SPACE LEAP', 50, 'Helvetica', '#3E82BE');
-		// play_message = new PIXI.Text("SPACE LEAP", 
-			// {font: "50px Helvetica", fill: "#3E82BE" });
 		play_help = create_txt('Press enter to play', 24, 'Helvetica', '#3E82BE');
-		
-		// play_help = new PIXI.Text("Press enter to play", 
-		// 	{font: "24px Helvetica", fill: "#3E82BE" });
 		game_over_message = create_txt('GAME OVER!', 50, 'Helvetica', '#FF0000');
-		// game_over_message = new PIXI.Text("GAME OVER!", 
-		// 	{font: "50px Helvetica", fill: "red" });
+		win_message = create_txt('YOU WIN!', 50, 'Helvetica', "#00FF00");
 
 		play_message.x = (stageW / 2) - (play_message.width / 2);
 		play_message.y = stageH / 2;
@@ -170,18 +228,21 @@
 		game_over_message.x = (stageW / 2) - (game_over_message.width / 2);
 		game_over_message.y = stageH / 2;
 
-		play_message.filters = [pixelateFilter];
+		win_message.x = (stageW / 2) - (win_message.width / 2);
+		win_message.y = stageH / 2;
+
 
 		game_scene.addChild(game_over_message);
-		
+		game_scene.addChild(win_message);
 		game_scene.addChild(play_message);
 		game_scene.addChild(play_help);
-		game_scene.addChild(rocketship);
 
 		game_over_message.visible = false;
+		win_message.visible = false;
 		rocketship.visible = false;
 
 		window.addEventListener('keyup', keyboard, true);
+		
 		state = play;
 
 		var controler = Leap.loop(options, function(frame){
@@ -203,9 +264,7 @@
 	}
 
 	function gameLoop(){
-		// setTimeout(function(){
 		requestAnimFrame(gameLoop);
-		// }, 1000/fps);
 		
 		state();
 
@@ -216,30 +275,58 @@
 		var now = window.performance.now();
 		var delta = Math.min(now - timer, 100);
 		timer = now;
+		
+		if(is_played){
+			var lego = window.performance.now();
+			the_level = level_check(lego);
+		}
+
+		switch(the_level){
+			case 1:
+				use_lvl = 'l1';
+				break;
+			case 2:
+				use_lvl = 'l2';
+				break;
+			case 3:
+				use_lvl = 'l3';
+				break;
+			case 4:
+				use_lvl = 'l4';
+				break;
+			case 5:
+				use_lvl = 'l5';
+				break;
+			default:
+				use_lvl = 'l1';
+
+		}
+		// console.log(levels[use_lvl].space_bg);
+
 		if(!tst_mode){
-			space.tilePosition.x -= 3;
+			parallax_bg(delta)
 		}
 
 		id_arry.forEach(function(ai){
-			var pp = Math.floor((ai.sprite.y / stageH) * 100);
 			var tl = ai.max - ai.min;
 
 			ai.sprite.y = inc_alian(tl, ai.max, ai.sy);
 
 		});
+
 		alien_scene.children.forEach(function(child){
 			if(Math.floor(timer) % 62 == 0){
-				// console.log('lazer shot');
 				alien_firing = true;
-				alien_lazer(child);
-				requestAnimFrame( alien_lazer );
-
+				create_lazer('a', child)
 			}
 			if(!tst_mode){
-				child.x -= 5;
+				child.x -= levels[use_lvl].alien_speed;
 
 			}
-			// collection_dection(child);
+			if(coli){
+				collection_dection(child);
+
+			}
 
 			if(child.x < -child.width){
 				alien_scene.removeChild(child);
@@ -248,18 +335,18 @@
 
 		});
 
-		space.children.forEach(function(child){
+		space_container.children.forEach(function(child){
 			if(!tst_mode){
-				child.x -= 4;
+				child.x -= levels[use_lvl].comet_speed;
 			}
-			// collection_dection(child);
+			if(coli){
+				collection_dection(child);
+
+			}
 			
 			if(child.x < -child.width){
-				space.removeChild(child);
+				space_container.removeChild(child);
 			}	
-			if(child.x > stageW){
-				console.log('remove lazer');
-			}
 
 		});
 
@@ -272,26 +359,57 @@
 			create_comet();
 			
 			if(!tst_mode){
-				if(comet_count_root % 5 === 0){
+				console.log(levels[use_lvl].alien_rate);
+				if(comet_count_root % levels[use_lvl].alien_rate === 0){
 					create_alien();
 				}
 			}else{
 				create_alien();
 			}
 		}
-
+		// console.log(comet_count_root);
 	}//end of play function
 
 	function end(){
 
 	}//end of end function 
+
+	function level_check(ms, points){
+		var time = Math.floor((ms/1000));
+
+			if(time > 30 && time < 60){
+				current_level = 2;
+				update_bg();
+
+			}else if(time > 60 && time < 90){
+				current_level = 3;
+				update_bg();
+
+			}else if(time > 90 && time < 120){
+				current_level = 4;
+				update_bg();
+
+			}else if(time > 120 && time < 150){
+				current_level = 5;
+				update_bg();
+
+			}else if(time > 150){
+				is_played = false;
+				win_message.visible = true;
+			}else{
+				current_level = 1;
+
+			}
+		
+
+		return current_level;
+	}
+
 	function inc_alian(travel_length, max, start){
 
 		angle += 0.005;
 		new_pos_rad = (((Math.sin(angle * (2 * Math.PI))*travel_length)+start));
-		// new_pos_deg = new_pos_rad * (180/Math.PI);
-		// new_pos_rad = ((Math.sin(angle * (2 * Math.PI)) * half_stage_h)+foo);
-		// console.log(new_pos_rad);
+
 		return new_pos_rad;
 	}//end inc_alian function
 	function move_ship(frame){
@@ -310,6 +428,7 @@
 			frame.gestures.forEach(function(gesture){
 				if(gesture.type == "keyTap"){
 					is_firing = true;
+					create_lazer('r', rocketship);
 					// lazer_animate();
 				}
 			})
@@ -320,8 +439,9 @@
 			is_played = true; 
 		}
 	}//end keybord function
-	var qq = 0;
+
 	function create_alien(){
+		// console.log(levels[use_lvl].space_bg);
 		if(!tst_mode){
 			var last = alien_scene.children[alien_scene.children.length - 1];
 			
@@ -336,8 +456,6 @@
 
 				var min_val = rand_num_gen(0, half_stage_h),
 					max_val = rand_num_gen(half_stage_h, (stageH - 50));
-
-				// console.log('Max:'+ max_val+ ' min:'+ min_val+ ' start y:'+ alien.y);
 
 				
 				id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
@@ -357,22 +475,15 @@
 
 				var min_val = rand_num_gen(0, half_stage_h),
 					max_val = rand_num_gen(half_stage_h, (stageH - 50));
-				// var min_val = 335,
-					// max_val = 463;
 
-				// console.log('Max:'+ max_val+ ' min:'+ min_val+ ' start y:'+ alien.y);
 
 				
 				id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
-				// console.log(alien_count);
 
 
-				// }
 				alien_count++;
-				// if(alien_count === 2){
 					jjj = false;
 
-				// }
 
 			}
 		}
@@ -381,10 +492,9 @@
 	}//end create alien function
 	function create_comet(){
 		// console.log('go ' + qq);
-		qq++;
-		var last = space.children[space.children.length - 1];
+		var last = space_container.children[space_container.children.length - 1];
 		
-		if(space.children.length == 0 || last.x < (stageW - 250)){
+		if(space_container.children.length == 0 || last.x < (stageW - levels[use_lvl].comet_rate)){
 			comet_count_root++;
 
 				switch (comet_count){
@@ -411,179 +521,118 @@
 			comet.y = Math.floor(Math.random() * (stageH - 100));
 			comet.x = stageW;
 
-			space.addChild(comet);
+			space_container.addChild(comet);
 
 
-			var theta = 0.2 * delta;
-			// if(comet_count_root % 2 === 0){
-			// 	alien.vy = 0;
-			// 	alien_scene.addChild(alien);
-			// 	var floor_val = rand_num_gen(0, 40),
-			// 		celi_val = rand_num_gen(50, 90);
-				
-			// 	id_arry.push({id: alien_count, sprite: alien, dir: false, fl: floor_val, ce: celi_val, vols: theta});
-			// 	// animate_aliens(alien, alien_count);
-			// 	// console.log(alien_count);
-			// 	alien_count++;
-				
-			// }
 			comet_count++;
 
 		}
 	}//end create comet function
-	
 
 
-	function alien_lazer(alien_ship){
-
-		if(alien_firing && is_played){
-			a_lazer = create_sprite('/img/lazer-r.jpg');
-		
-			var pos = alien_ship.position;
-			// console.log(pos);
-			a_lazer.anchor.x = 0.5;
-			a_lazer.anchor.y = 0.5;
-
-			a_lazer.position.x = pos.x - 20;
-			a_lazer.position.y = pos.y + 30;
-			
-			if(a_lazers.length <= 20){
-				a_lazers.push(a_lazer);
-			}else{
-				a_lazers = [];
-				a_lazers.push(a_lazer);
-			}
-			// console.log(a_lazers);
-			stage.addChild(a_lazer);
-			// console.log('alien shot fired');
-			alien_firing = false;
-
-		}
-
-		a_lazers.forEach(function(A_LAZER){
-			// if(A_LAZER.x < stageW){
-				A_LAZER.x -= 0.2 * delta;
-				if(A_LAZER.x < -100){
-					a_lazers.splice(0,1);
-				}
-				if(hitTestRectangle(A_LAZER, rocketship)){
-				// alien_scene.children.forEach(function(child){
-					// if(hitTestRectangle(A_LAZER, child)){
-						console.log('alien lazer hit!');
-						stage.removeChild(A_LAZER);
-				// 		alien_scene.removeChild(child);
-						
-				// 		return;
-				// 	}	
-				// });
-
-			}
-			// 	stage.removeChild(A_LAZER);
-			// }
-		})
-
-		// console.log(Math.floor(timer));
-
-		requestAnimFrame(alien_lazer);
-	}//end alien_lazer function
-
-	function inc_lazer(the_lazer){
+	function inc_lazer(the_lazer, direction){
 		// console.log(the_lazer);
 		beta = 0.5 * delta;
 		// the_lazer.x = rocketship.position.x + 80;
-		var ang = the_lazer.x += beta;
-		// console.log(ang);
+		if(direction === 'pos'){
+			var ang = the_lazer.x += beta;
+
+		}else if(direction === 'neg'){
+			var ang = the_lazer.x -= beta;
+		}
 		return ang;
 	}//end inc_alien_lazer
-	var limit = 3;
-	function create_lazer(type){
+
+
+	function create_lazer(type, obj){
+		if(type === 'r'){
+			var lazer_src = '/img/lazer.jpg';
+			var the_arr = lazers;
+			var pos_x = 80,
+				pos_y = 40;
+			var firing = is_firing;
+
+		}else if(type === 'a'){
+			var lazer_src = '/img/lazer-r.jpg';
+			var the_arr = a_lazers;
+			var pos_x = -20,
+				pos_y = 30;
+			var firing = alien_firing;
+		}
+
+		var new_lazer = create_sprite(lazer_src);
+		var pos = obj.position;
+
+		new_lazer.anchor.x = 0.5;
+		new_lazer.anchor.y = 0.5;
+		new_lazer.position.x = pos.x + pos_x;
+		new_lazer.position.y = pos.y + pos_y;
+
+		the_arr.push(new_lazer);
+		stage.addChild(new_lazer);
+
+		firing = false;
+		// console.log(the_arr);
+
+	}//end create_lazer function
+	function update_bg(){
+		is_played = false;
+		var this_texture = PIXI.TextureCache[fp.path+"/img/space/"+levels[use_lvl].space_bg+".png"];
+		space_tile.setTexture(this_texture);
+		is_played = true;
+		// game_scene.addChild(space_tile);
 
 	}
-	function lazer_animate(){
+	function lazer_animate(type){
+		var this_arr;
+		if(type === 'r'){
+			for(var i = 0; i < lazers.length; i++){
+				// console.log(lazers[i].x);
+				if(lazers[i].x < stageW+100){
+					lazers[i].x = inc_lazer(lazers[i], 'pos');
+					for(var x = 0; x<alien_scene.children.length; x++){
+						var this_alien = alien_scene.children[x];
+						
+						if(hitTestRectangle(lazers[i], this_alien)){
+							if(coli){
+								alien_scene.removeChild(this_alien);
+								stage.removeChild(lazers[i]);
+								lazers.splice(i, 1);
+								id_arry.splice(x, 1);
+							}
+						}
 
-		if(is_firing && is_played){
-			// lazer.vx = 5;
-			// for(var i = 0; i<limit; i++){
+					}
 
-				lazer = create_sprite('/img/lazer.jpg');
+				}else{
+					lazers.splice(i, 1);
+				}
+			}
+		}else if(type === 'a'){
+			for(var i = 0; i < a_lazers.length; i++){
+				// console.log(lazers[i].x);
+				if(a_lazers[i].x < stageW+100){
+					a_lazers[i].x = inc_lazer(a_lazers[i], 'neg');
+					if(hitTestRectangle(a_lazers[i], rocketship)){
+						if(coli){
+							collided = true;
 
-				var pos = rocketship.position;
-				lazer.anchor.x = 0.5;
-				lazer.anchor.y = 0.5;
-				lazer.position.x = pos.x + 80;
-				lazer.position.y = pos.y + 40;
-				
-				lazers.push(lazer);
+							game_over_message.visible = true;
 
-				// setTimeout(function(){
-					stage.addChild(lazer);
-				// }, 200);
-
-				// stage.addChild(lazer);
-				console.log('shot fired');
-
-			// }
-				console.log(lazers);
-
-
-			is_firing = false;
-		}
-		// lazer.x += 5;
-		for(var i = 0; i < lazers.length; i++){
-			// console.log(lazers[i].x);
-			if(lazers[i].x < stageW+100){
-				lazers[i].x = inc_lazer(lazers[i]);
-			}else if(lazers[i].x > stageW + 100){
-				// lazers.splice(i, 1);
+							is_played = false;
+						}
+					}
+				}else{
+					a_lazers.splice(i, 1);
+				}
 			}
 		}
-		// for(var x = 0; x<limit; x++){
-			// var g = x - 1;
-			
-			// setTimeout(function(){
-				// console.log(lazers[x]);
-				// lazers[x].x = inc_lazer(lazers[x]);
-				// if(lazers[x].x > stageW + 100){
-				// 	lazers.splice(x, 1);
-				// }
-			// }, 10);
-
-
-		// }
-		// lazers.forEach(function(LAZER){
-			// console.log(LAZER.x);
-			// m.tickStart();
-			// if(LAZER.x < stageW+100){
-					// LAZER.x = inc_lazer(LAZER);
-
-
-				// console.log(LAZER.x);
-				// alien_scene.children.forEach(function(child){
-				// 	if(hitTestRectangle(LAZER, child)){
-				// 		console.log('its a hit!');
-				// 		stage.removeChild(LAZER);
-				// 		alien_scene.removeChild(child);
-						
-				// 		return;
-				// 	}	
-				// });
-
-			// }else if(LAZER.x > stageW+100){
-				// lazers.splice(0,1);
-
-				// stage.removeChild(LAZER);
-			// }
-		// });
-
-		// setTimeout(function(){
-		// 	requestAnimationFrame(lazer_animate);
-		// }, 1000/80);
-
 
 	}//end of Lazer animation
 	function animate(){
 		// if(is_firing){
-		lazer_animate();
+		lazer_animate('r');
+		lazer_animate('a');
 
 		// }
 		// console.log('go');
