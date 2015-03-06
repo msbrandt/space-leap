@@ -16,7 +16,7 @@
 	
 	document.getElementById('game').appendChild(render.view);
 
-	var current_level, the_level;
+	var current_level;
 	var use_lvl = 'l0';
 	var jjj = true;
 	var rocketship, space_tile, space_container, bg_stars, fg_stars, lazer, a_lazer, pixelateFilter, game_scene, game_over_scene, alien_scene, state, rocket_lazer_scene, comet_scene;
@@ -30,6 +30,9 @@
 	var lazers = [];
 	var a_lazers = [];
 	var angle = 0;
+	var ma = false;
+	var secs_lb, mins_lb;
+	var total_s = 0;
 
 	var id_arry = [];
 
@@ -42,82 +45,83 @@
 
 	var levels = {
 		l0: {
-			space_bg: 'space-lvlb_1',
-			space_speed: 0.1,
-			back_star_speed: 0.15,
-			for_star_speed: 0.2,
-			comet_speed: 4,
-			alien_speed: 5,
-			comet_rate: 600,
-			alien_rate: 5,
+			space_bg: 'space-home',
+			space_speed: .25,
+			back_star_speed: 1,
+			for_star_speed: 2,
+			comet_speed: 3,
+			alien_speed: 3.5,
+			comet_rate: 0,
+			alien_rate: 0,
 			// a_lazer_timer: 
 		},		
 		l1: {
 			space_bg: 'space-lvl1',
-			space_speed: 0.1,
-			back_star_speed: 0.15,
-			for_star_speed: 0.2,
-			comet_speed: 4,
-			alien_speed: 5,
+			space_speed: .25,
+			back_star_speed: 1,
+			for_star_speed: 2,
+			comet_speed: 3,
+			alien_speed: 3.5,
 			comet_rate: 600,
 			alien_rate: 5,
 			// a_lazer_timer: 
 		},
+		// l2: {
+		// 	space_bg: 'space-lvl2',
+		// 	space_speed: 0.15,
+		// 	back_star_speed: 0.2,
+		// 	for_star_speed: .25,
+		// 	comet_speed: 5,
+		// 	alien_speed: 6,
+		// 	comet_rate: 400,
+		// 	alien_rate: 5,
+		// 	// a_lazer_timer: 
+		// },
 		l2: {
-			space_bg: 'space-lvl2',
-			space_speed: 0.15,
-			back_star_speed: 0.2,
-			for_star_speed: .25,
-			comet_speed: 5,
-			alien_speed: 6,
-			comet_rate: 400,
-			alien_rate: 5,
-			// a_lazer_timer: 
-		},
-		l3: {
 			space_bg: 'space-lvl3',
-			space_speed: 0.2,
-			back_star_speed: 0.25 ,
-			for_star_speed: 0.3,
-			comet_speed: 6,
-			alien_speed: 7,
+			space_speed: .5,
+			back_star_speed: 1.5 ,
+			for_star_speed: 3,
+			comet_speed: 4,
+			alien_speed: 4.5,
 			comet_rate: 300,
 			alien_rate: 6,
 			// a_lazer_timer: 
 		},
-		l4: {
+		l3: {
 			space_bg: 'space-lvl4',
-			space_speed: 0.3,
-			back_star_speed: 0.35,
-			for_star_speed: 0.4,
-			comet_speed: 7,
-			alien_speed: 8,
+			space_speed: 1,
+			back_star_speed: 2.5,
+			for_star_speed: 5,
+			comet_speed: 6.5,
+			alien_speed: 7,
 			comet_rate: 200,
 			alien_rate: 7,
 			// a_lazer_timer: 
 		},
-		l5: {
-			space_bg: 'space-lvl5',
-			space_speed: 0.7,
-			back_star_speed: 0.8,
-			for_star_speed: 0.9,
-			comet_speed: 10,
-			alien_speed: 11,
-			comet_rate: 100,
-			alien_rate: 5,
-			// a_lazer_timer: 
-		},
+		// l5: {
+		// 	space_bg: 'space-lvl5',
+		// 	space_speed: 0.7,
+		// 	back_star_speed: 0.8,
+		// 	for_star_speed: 0.9,
+		// 	comet_speed: 10,
+		// 	alien_speed: 11,
+		// 	comet_rate: 100,
+		// 	alien_rate: 5,
+		// 	// a_lazer_timer: 
+		// },
 
 	};
 
 
 	var loader =  new PIXI.AssetLoader([
 		fp.path+"/img/space/space-lvl1.png",
-		fp.path+"/img/space/space-lvl2.png",
+		// fp.path+"/img/space/space-lvl2.png",
 		fp.path+"/img/space/space-lvl3.png",
 		fp.path+"/img/space/space-lvl4.png",
 		fp.path+"/img/space/space-lvl5.png",
-		fp.path+"/img/space/space-lvlb_1.png",
+		// fp.path+"/img/space/space-lvlb_1.png",
+		fp.path+"/img/space/space-home.png",
 		fp.path+"/img/comet-canvas.png",
 		fp.path+"/img/stars-sm.png",
 		fp.path+"/img/stars-lg.png",
@@ -158,17 +162,18 @@
 		filter.size = new PIXI.Point(6,6);
 		obj.filters = [filter];
 
-	}
+	}//end pixelate function
 
 	function parallax_bg(d){
-		space_tile.tilePosition.x -= levels[use_lvl].space_speed * d;
-		bg_stars.tilePosition.x -= levels[use_lvl].back_star_speed * d;
-		fg_stars.tilePosition.x -= levels[use_lvl].for_star_speed * d;		
-	}
+		space_tile.tilePosition.x -= .5;
+		bg_stars.tilePosition.x -=  1.5;
+		fg_stars.tilePosition.x -=  3;		
+	}//end parallax_bg function 
 
 	var now, delta;
 	
 	function setup(){
+		the_level = 0;
 
 		now = window.performance.now();
 		delta = Math.min(now - timer, 100);
@@ -225,8 +230,8 @@
 		point_txt.x = 1150;
 		// point_box.addChild(point_txt);
 		
-		play_message = create_txt('SPACE LEAP', 50, 'Helvetica', '#3E82BE');
-		play_help = create_txt('Press enter to play', 24, 'Helvetica', '#3E82BE');
+		play_message = create_txt('SPACE LEAP', 50, 'Helvetica', '#0FF');
+		play_help = create_txt('Press enter to play', 24, 'Helvetica', '#0FF');
 		game_over_message = create_txt('GAME OVER!', 50, 'Helvetica', '#FF0000');
 		win_message = create_txt('YOU WIN!', 50, 'Helvetica', "#00FF00");
 
@@ -270,9 +275,7 @@
 		})//end of leap loop
 		gameLoop();
 		requestAnimFrame(animate);
-
-
-	}
+	}//end setup function
 
 	function gameLoop(){
 		requestAnimFrame(gameLoop);
@@ -280,7 +283,7 @@
 		state();
 
 		render.render(stage);
-	}//end of gameLoop function
+	}//end gameLoop function
 
 	function play(){
 		var now = window.performance.now();
@@ -288,9 +291,14 @@
 		timer = now;
 		
 		if(is_played){
-			var lego = window.performance.now();
-			the_level = level_check(lego);
+			var lego = window.performance.now();			
+			
+
+			the_level = level_check(45);
+			// the_level = 1;
+			console.log(the_level);
 		}
+		// console.log(the_level);
 		switch(the_level){
 			case 1:
 				use_lvl = 'l1';
@@ -311,7 +319,7 @@
 				use_lvl = 'l0';
 
 		}
-		console.log(use_lvl);
+		// console.log(use_lvl);
 		// console.log(levels[use_lvl].space_bg);
 
 		if(!tst_mode){
@@ -373,20 +381,22 @@
 				// console.log(levels[use_lvl].alien_rate);
 				if(comet_count_root % levels[use_lvl].alien_rate === 0){
 					create_alien();
+					comet_count_root ++;
 				}
 			}else{
 				create_alien();
 			}
 		}
 		// console.log(comet_count_root);
-	}//end of play function
+	}//end play function
 
 	function end(){
 
-	}//end of end function 
+	}//end end function 
 
 	function level_check(ms, points){
-		var time = Math.floor((ms/1000));
+		// var time = Math.floor((ms/1000));
+		var time = ms;
 		if(is_played){
 			if(time > 30 && time < 60){
 				current_level = 2;
@@ -396,27 +406,29 @@
 				current_level = 3;
 				update_bg();
 
-			}else if(time > 90 && time < 120){
-				current_level = 4;
-				update_bg();
+			}
+			// else if(time > 90 && time < 120){
+			// 	current_level = 4;
+			// 	update_bg();
 
-			}else if(time > 120 && time < 150){
-				current_level = 5;
-				update_bg();
+			// }else if(time > 120 && time < 150){
+			// 	current_level = 5;
+			// 	update_bg();
 
-			}else if(time > 150){
+			// }
+			else if(time > 150){
 				is_played = false;
 				win_message.visible = true;
 			}else{
 				current_level = 1;
 				update_bg();
-				
+
 			}
 		}
 		
 
 		return current_level;
-	}
+	}//end level_check
 
 	function inc_alian(travel_length, max, start){
 
@@ -458,7 +470,7 @@
 		if(!tst_mode){
 			var last = alien_scene.children[alien_scene.children.length - 1];
 			
-			if(alien_scene.children.length == 0 || last.x < (stageW - 250)){
+			if(alien_scene.children.length == 0 || last.x < (stageW - 200)){
 				var alien = create_sprite('/img/alien_sm.gif');
 
 				alien.y = Math.floor(Math.random() * (stageH - 105));
@@ -474,6 +486,7 @@
 				id_arry.push({id: alien_count, sprite: alien, dir: false, min: min_val, max: max_val, sy: alien.y});
 
 				alien_count++;
+				ma = false;
 			}
 
 		}else{
@@ -509,6 +522,7 @@
 		
 		if(space_container.children.length == 0 || last.x < (stageW - levels[use_lvl].comet_rate)){
 			comet_count_root++;
+			// console.log(comet_count_root);
 
 				switch (comet_count){
 					case 1:
@@ -641,7 +655,7 @@
 			}
 		}
 
-	}//end of Lazer animation
+	}//end Lazer animation
 	function animate(){
 		// if(is_firing){
 		lazer_animate('r');
@@ -685,7 +699,7 @@
 
 		}
 
-	}//end of restart_game_lisnter function
+	}//end restart_game_lisnter function
 	function page_state(frame){
 		if(frame.hands.length === 2){
 
@@ -700,7 +714,7 @@
 				})
 			}
 		}
-	}
+	}//end page_state
 	function hitTestRectangle(r1, r2) {
 
 	  //Define the variables we'll need to calculate
@@ -751,6 +765,6 @@
 	  //`hit` will be either `true` or `false`
 	  return hit;
 
-	};//end of hitTestRectangle function
+	};//end hitTestRectangle function
 
 })(jQuery);
